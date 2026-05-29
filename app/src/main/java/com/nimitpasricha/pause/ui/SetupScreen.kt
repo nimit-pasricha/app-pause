@@ -24,6 +24,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -78,6 +80,12 @@ fun SetupScreen() {
 
     var apps by remember { mutableStateOf<List<InstalledApp>>(emptyList()) }
     LaunchedEffect(Unit) { apps = loadInstalledApps(context) }
+
+    var query by remember { mutableStateOf("") }
+    val filteredApps = remember(apps, query) {
+        val q = query.trim()
+        if (q.isEmpty()) apps else apps.filter { it.label.contains(q, ignoreCase = true) }
+    }
 
     // Re-check the permission prompts whenever we come back to this screen
     // (the user may have just toggled them in system Settings).
@@ -175,15 +183,48 @@ fun SetupScreen() {
                 )
             }
         } else {
-            items(apps, key = { it.packageName }) { app ->
-                AppRow(
-                    app = app,
-                    checked = app.packageName in watched,
-                    palette = palette,
-                    onToggle = { on ->
-                        scope.launch { watchedApps.setWatched(app.packageName, on) }
-                    },
+            item {
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    singleLine = true,
+                    placeholder = { Text("Search apps") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = palette.heroText,
+                        unfocusedTextColor = palette.heroText,
+                        cursorColor = palette.primaryButton,
+                        focusedBorderColor = palette.primaryButton,
+                        unfocusedBorderColor = palette.ringTrack,
+                        focusedPlaceholderColor = palette.contextText,
+                        unfocusedPlaceholderColor = palette.contextText,
+                    ),
                 )
+            }
+
+            if (filteredApps.isEmpty()) {
+                item {
+                    Text(
+                        text = "No apps match \"${query.trim()}\".",
+                        fontSize = 14.sp,
+                        color = palette.contextText,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                }
+            } else {
+                items(filteredApps, key = { it.packageName }) { app ->
+                    AppRow(
+                        app = app,
+                        checked = app.packageName in watched,
+                        palette = palette,
+                        onToggle = { on ->
+                            scope.launch { watchedApps.setWatched(app.packageName, on) }
+                        },
+                    )
+                }
             }
         }
     }
