@@ -2,6 +2,7 @@ package com.nimitpasricha.pause.service
 
 import android.accessibilityservice.AccessibilityService
 import android.content.Intent
+import android.provider.Settings
 import android.view.accessibility.AccessibilityEvent
 import com.nimitpasricha.pause.data.WatchedApps
 import com.nimitpasricha.pause.ui.PauseActivity
@@ -17,9 +18,14 @@ import kotlinx.coroutines.flow.onEach
  *
  * The hard part is firing exactly once per *fresh* open — not on every window
  * blip, not when the keyboard pops up mid-session, not right after the user
- * chose "Open anyway". We track the current foreground *app* (packages that
- * have a launcher entry — which filters out IMEs, dialogs, and system UI) and
- * only act on a real switch into a watched app.
+ * chose "Open anyway". We track the current foreground *app* and only act on a
+ * real switch into a watched app.
+ *
+ * "Real" means: any package that isn't transient. We ignore our own screens,
+ * the keyboard/IME, and the system UI shade — but crucially we do NOT ignore
+ * the home launcher (many launchers have no app-drawer entry, so an
+ * "is it launchable" test would skip them, leaving the tracker stuck on the
+ * watched app and never re-pausing after the user goes home).
  */
 class PauseAccessibilityService : AccessibilityService() {
 
@@ -33,8 +39,13 @@ class PauseAccessibilityService : AccessibilityService() {
     @Volatile
     private var foregroundApp: String? = null
 
+    /** The active keyboard's package, so its windows don't count as "leaving". */
+    @Volatile
+    private var imePackage: String? = null
+
     override fun onServiceConnected() {
         super.onServiceConnected()
+        imePackage = currentImePackage()
         WatchedApps(applicationContext).watched
             .onEach { watched = it }
             .launchIn(scope)
@@ -44,12 +55,11 @@ class PauseAccessibilityService : AccessibilityService() {
         if (event?.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
         val pkg = event.packageName?.toString() ?: return
 
-        // Never react to our own pause/home screens — that would loop.
-        if (pkg == packageName) return
-
-        // Ignore window blips that aren't a real app coming forward (keyboards,
-        // dialogs, system UI). Only launchable apps change the foreground app.
-        if (!isLaunchableApp(pkg)) return
+        // Ignore transient windows that aren't a real app coming forward: our
+        // own screens, the keyboard, and the system UI shade. Everything else —
+        // including the home launcher and other apps — counts as a foreground
+        // change.
+        if (isTransientWindow(pkg)) return
 
         // Same app still in front (repeat events) — nothing to do.
         if (pkg == foregroundApp) return
@@ -72,13 +82,23 @@ class PauseAccessibilityService : AccessibilityService() {
         startActivity(intent)
     }
 
-    private fun isLaunchableApp(packageName: String): Boolean =
-        packageManager.getLaunchIntentForPackage(packageName) != null
+    private fun isTransientWindow(pkg: String): Boolean =
+        pkg == packageName || pkg == SYSTEM_UI_PACKAGE || pkg == imePackage
+
+    /** The package of the current default input method (e.g. the keyboard). */
+    private fun currentImePackage(): String? =
+        Settings.Secure.getString(contentResolver, Settings.Secure.DEFAULT_INPUT_METHOD)
+            ?.substringBefore('/')
+            ?.takeIf { it.isNotEmpty() }
 
     override fun onInterrupt() = Unit
 
     override fun onDestroy() {
         super.onDestroy()
         scope.cancel()
+    }
+
+    private companion object {
+        const val SYSTEM_UI_PACKAGE = "com.android.systemui"
     }
 }

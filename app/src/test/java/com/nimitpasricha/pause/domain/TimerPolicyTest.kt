@@ -22,10 +22,21 @@ class TimerPolicyTest {
     }
 
     @Test
-    fun `never exceeds the 30 second cap`() {
-        for (visit in 3..1000) {
+    fun `fourth visit is 45 seconds`() {
+        assertEquals(45, TimerPolicy.durationSeconds(4))
+    }
+
+    @Test
+    fun `fifth visit is the 60 second cap`() {
+        assertEquals(60, TimerPolicy.durationSeconds(5))
+    }
+
+    @Test
+    fun `never exceeds the 60 second cap`() {
+        for (visit in 5..1000) {
             assertEquals(TimerPolicy.MAX_SECONDS, TimerPolicy.durationSeconds(visit))
         }
+        assertEquals(60, TimerPolicy.MAX_SECONDS)
     }
 
     @Test
