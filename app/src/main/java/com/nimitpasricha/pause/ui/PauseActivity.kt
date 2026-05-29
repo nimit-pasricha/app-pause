@@ -17,7 +17,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.lifecycleScope
 import com.nimitpasricha.pause.data.Stats
 import com.nimitpasricha.pause.data.VisitTracker
 import com.nimitpasricha.pause.domain.PauseLine
@@ -26,6 +25,9 @@ import com.nimitpasricha.pause.domain.TimerPolicy
 import com.nimitpasricha.pause.service.PauseGate
 import com.nimitpasricha.pause.theme.Theme
 import com.nimitpasricha.pause.theme.ThemeProvider
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.ceil
@@ -41,6 +43,12 @@ import kotlin.math.ceil
  */
 class PauseActivity : ComponentActivity() {
 
+    /** Set only on the "Open anyway" path — the one exit that is *not* a win. */
+    private var openedApp = false
+
+    /** Guards against recording the same pause's win more than once. */
+    private var winRecorded = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -55,19 +63,37 @@ class PauseActivity : ComponentActivity() {
                 targetPackage = targetPackage,
                 appLabel = appLabel(targetPackage),
                 onBackOut = {
-                    // The rewarded path: count the win, then go home.
-                    lifecycleScope.launch { Stats(applicationContext).recordBackedOut() }
+                    // The rewarded path: a quiet exit home. The win itself is
+                    // recorded in onStop, which also covers leaving via Home.
                     goHome()
                     finish()
                 },
                 onOpenAnyway = {
-                    // Let the service know to wave this one through, then reveal
-                    // the app underneath by finishing.
+                    // The only non-win exit. Let the service wave this one
+                    // through, then reveal the app underneath by finishing.
+                    openedApp = true
                     PauseGate.allow(targetPackage)
                     finish()
                 },
             )
         }
+    }
+
+    /**
+     * Any way the pause leaves the screen without "Open anyway" is a win —
+     * the dedicated button, hardware back, or simply leaving via Home. They
+     * all funnel through onStop, so we count the win here (once) rather than
+     * on any single button. Config-change stops (none expected — the activity
+     * is locked to portrait) are excluded so they can't fake a win.
+     */
+    override fun onStop() {
+        super.onStop()
+        if (openedApp || winRecorded || isChangingConfigurations) return
+        winRecorded = true
+        val appContext = applicationContext
+        // A process-lifetime scope so the write survives this activity being
+        // destroyed (e.g. swiped away or torn down right after onStop).
+        appScope.launch { Stats(appContext).recordBackedOut() }
     }
 
     /** Hardware back behaves like "never mind" — a quiet exit home, counted as a win. */
@@ -88,6 +114,9 @@ class PauseActivity : ComponentActivity() {
 
     companion object {
         const val EXTRA_PACKAGE = "com.nimitpasricha.pause.extra.PACKAGE"
+
+        /** Outlives any single pause so a win write isn't cut off mid-flight. */
+        private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
         /** Remembered across pauses so the same line isn't shown twice in a row. */
         private var lastShownLine: PauseLine? = null
