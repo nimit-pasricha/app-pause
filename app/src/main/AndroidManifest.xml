@@ -17,6 +17,18 @@
             </intent-filter>
         </activity>
 
+        <!-- The pause screen. Launched over the watched app by the accessibility
+             service; kept in its own task, out of recents, and not relaunched on
+             top of itself. -->
+        <activity
+            android:name=".ui.PauseActivity"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:taskAffinity="com.nimitpasricha.pause.pause"
+            android:excludeFromRecents="true"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.Beat" />
+
     </application>
 
 </manifest>
