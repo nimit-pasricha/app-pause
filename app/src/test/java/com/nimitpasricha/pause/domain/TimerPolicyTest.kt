@@ -7,33 +7,28 @@ import org.junit.Test
 class TimerPolicyTest {
 
     @Test
-    fun `first visit is 5 seconds`() {
-        assertEquals(5, TimerPolicy.durationSeconds(1))
+    fun `first visit is 15 seconds`() {
+        assertEquals(15, TimerPolicy.durationSeconds(1))
     }
 
     @Test
-    fun `second visit is 15 seconds`() {
-        assertEquals(15, TimerPolicy.durationSeconds(2))
+    fun `second visit is 30 seconds`() {
+        assertEquals(30, TimerPolicy.durationSeconds(2))
     }
 
     @Test
-    fun `third visit is 30 seconds`() {
-        assertEquals(30, TimerPolicy.durationSeconds(3))
+    fun `third visit is 45 seconds`() {
+        assertEquals(45, TimerPolicy.durationSeconds(3))
     }
 
     @Test
-    fun `fourth visit is 45 seconds`() {
-        assertEquals(45, TimerPolicy.durationSeconds(4))
-    }
-
-    @Test
-    fun `fifth visit is the 60 second cap`() {
-        assertEquals(60, TimerPolicy.durationSeconds(5))
+    fun `fourth visit is the 60 second cap`() {
+        assertEquals(60, TimerPolicy.durationSeconds(4))
     }
 
     @Test
     fun `never exceeds the 60 second cap`() {
-        for (visit in 5..1000) {
+        for (visit in 4..1000) {
             assertEquals(TimerPolicy.MAX_SECONDS, TimerPolicy.durationSeconds(visit))
         }
         assertEquals(60, TimerPolicy.MAX_SECONDS)
@@ -51,7 +46,7 @@ class TimerPolicyTest {
 
     @Test
     fun `defensive - zero or negative counts fall back to the shortest wait`() {
-        assertEquals(5, TimerPolicy.durationSeconds(0))
-        assertEquals(5, TimerPolicy.durationSeconds(-3))
+        assertEquals(15, TimerPolicy.durationSeconds(0))
+        assertEquals(15, TimerPolicy.durationSeconds(-3))
     }
 }
