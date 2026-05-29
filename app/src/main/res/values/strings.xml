@@ -2,4 +2,5 @@
 <resources>
     <!-- Display name is a placeholder ("Beat", working title) — easy to rename. -->
     <string name="app_name">Beat</string>
+    <string name="accessibility_description">Beat watches for the apps you chose and slips a short pause in front of them, so you get a beat to change your mind. It only reads which app comes to the foreground — nothing you type or see inside it.</string>
 </resources>
