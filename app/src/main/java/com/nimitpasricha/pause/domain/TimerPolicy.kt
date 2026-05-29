@@ -6,7 +6,9 @@ package com.nimitpasricha.pause.domain
  * Escalates by visit count per app, per day:
  *   1st open  -> 5s
  *   2nd open  -> 15s
- *   3rd+      -> 30s (hard cap)
+ *   3rd open  -> 30s
+ *   4th open  -> 45s
+ *   5th+      -> 60s (hard cap)
  *
  * Deliberately deterministic and monotonic: reopening only ever makes the next
  * wait longer, never shorter, and the duration is never randomized (randomness
@@ -15,19 +17,19 @@ package com.nimitpasricha.pause.domain
  */
 object TimerPolicy {
 
-    const val MAX_SECONDS = 30
+    const val MAX_SECONDS = 60
 
-    private const val FIRST_VISIT_SECONDS = 5
-    private const val SECOND_VISIT_SECONDS = 15
+    // The escalation curve, indexed by visit count. Visits past the last entry
+    // stay at the cap.
+    private val LADDER = intArrayOf(5, 15, 30, 45, 60)
 
     /**
      * @param visitCount 1-based count of today's opens of this app (the visit
      *   being paused is included — the first open of the day is `1`).
      * @return the pause duration in seconds for this visit.
      */
-    fun durationSeconds(visitCount: Int): Int = when {
-        visitCount <= 1 -> FIRST_VISIT_SECONDS
-        visitCount == 2 -> SECOND_VISIT_SECONDS
-        else -> MAX_SECONDS
+    fun durationSeconds(visitCount: Int): Int {
+        val index = (visitCount - 1).coerceIn(0, LADDER.size - 1)
+        return LADDER[index]
     }
 }
