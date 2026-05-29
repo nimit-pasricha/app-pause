@@ -9,7 +9,7 @@ plugins {
 // Release signing is driven entirely by environment variables (set by CI from
 // repository secrets). When they're absent — e.g. a local `assembleDebug` or a
 // fork build — we skip the release signing config so the build still succeeds.
-val keystoreEnvPresent = System.getenv("KEYSTORE_FILE") != null
+val keystoreEnvPresent = !System.getenv("KEYSTORE_FILE").isNullOrBlank()
 
 android {
     namespace = "com.nimitpasricha.pause"
@@ -20,8 +20,10 @@ android {
         applicationId = "com.nimitpasricha.pause"
         minSdk = 29
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        // CI injects a fresh, monotonically-increasing version on each merge to
+        // main; local builds fall back to a static dev version.
+        versionCode = (System.getenv("VERSION_CODE") ?: "1").toInt()
+        versionName = System.getenv("VERSION_NAME") ?: "0.1.0-dev"
     }
 
     signingConfigs {
@@ -42,7 +44,14 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
-            signingConfig = if (keystoreEnvPresent) signingConfigs.getByName("release") else null
+            // Sign with the real release key when CI provides it (stable
+            // signature → updates install in place); otherwise fall back to the
+            // debug key so every build still produces an installable APK.
+            signingConfig = if (keystoreEnvPresent) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 

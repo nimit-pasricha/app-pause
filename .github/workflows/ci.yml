@@ -1,8 +1,8 @@
 name: CI
 
+# Validates pull requests. Merging to main is handled by release.yml, which
+# builds and publishes the APK.
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
 

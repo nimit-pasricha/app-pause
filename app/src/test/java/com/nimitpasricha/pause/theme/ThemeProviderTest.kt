@@ -1,35 +1,35 @@
 package com.nimitpasricha.pause.theme
 
-import com.nimitpasricha.pause.theme.themes.BlossomTheme
-import com.nimitpasricha.pause.theme.themes.SkyTheme
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertSame
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.LocalDate
+import kotlin.random.Random
 
 class ThemeProviderTest {
 
     @Test
-    fun `spring days use the blossom theme`() {
-        assertSame(BlossomTheme, ThemeProvider.themeFor(LocalDate.of(2026, 4, 15)))
-    }
-
-    @Test
-    fun `summer days use the sky theme`() {
-        assertSame(SkyTheme, ThemeProvider.themeFor(LocalDate.of(2026, 7, 1)))
-    }
-
-    @Test
-    fun `the theme is stable across a single day`() {
-        val date = LocalDate.of(2026, 5, 29)
-        assertSame(ThemeProvider.themeFor(date), ThemeProvider.themeFor(date))
-    }
-
-    @Test
-    fun `every month resolves to a theme`() {
-        for (month in 1..12) {
-            val theme = ThemeProvider.themeFor(LocalDate.of(2026, month, 10))
-            assertEquals(true, theme === BlossomTheme || theme === SkyTheme)
+    fun `random never returns the avoided theme`() {
+        val random = Random(13)
+        var previous: Theme? = null
+        repeat(500) {
+            val theme = ThemeProvider.random(avoid = previous, random = random)
+            assertNotEquals(previous, theme)
+            previous = theme
         }
+    }
+
+    @Test
+    fun `random only returns registered themes`() {
+        val random = Random(99)
+        repeat(200) {
+            assertTrue(ThemeProvider.random(random = random) in ThemeProvider.all)
+        }
+    }
+
+    @Test
+    fun `rotation exercises more than one theme`() {
+        val random = Random(5)
+        val seen = (1..200).map { ThemeProvider.random(random = random) }.toSet()
+        assertTrue("rotation should surface multiple themes", seen.size > 1)
     }
 }
