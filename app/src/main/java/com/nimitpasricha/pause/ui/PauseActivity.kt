@@ -24,10 +24,10 @@ import com.nimitpasricha.pause.domain.PauseLine
 import com.nimitpasricha.pause.domain.PauseLines
 import com.nimitpasricha.pause.domain.TimerPolicy
 import com.nimitpasricha.pause.service.PauseGate
+import com.nimitpasricha.pause.theme.Theme
 import com.nimitpasricha.pause.theme.ThemeProvider
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.time.LocalDate
 import kotlin.math.ceil
 
 /**
@@ -97,6 +97,15 @@ class PauseActivity : ComponentActivity() {
         fun rememberLine(line: PauseLine) {
             lastShownLine = line
         }
+
+        /** Remembered across pauses so the theme switches every time. */
+        private var lastShownTheme: Theme? = null
+
+        fun lastTheme(): Theme? = lastShownTheme
+
+        fun rememberTheme(theme: Theme) {
+            lastShownTheme = theme
+        }
     }
 }
 
@@ -108,7 +117,11 @@ private fun PauseRoot(
     onOpenAnyway: () -> Unit,
 ) {
     val context = LocalContext.current
-    val theme = remember { ThemeProvider.themeFor(LocalDate.now()) }
+    // A fresh theme each pause, never repeating the last one shown.
+    val theme = remember {
+        ThemeProvider.random(avoid = PauseActivity.lastTheme())
+            .also { PauseActivity.rememberTheme(it) }
+    }
 
     var totalSeconds by remember { mutableStateOf(0) }
     var line by remember { mutableStateOf<PauseLine?>(null) }

@@ -56,7 +56,6 @@ import com.nimitpasricha.pause.theme.ThemeProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.time.LocalDate
 
 /** A launchable app the user can choose to watch. */
 data class InstalledApp(
@@ -69,7 +68,7 @@ data class InstalledApp(
 fun SetupScreen() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val theme = remember { ThemeProvider.themeFor(LocalDate.now()) }
+    val theme = remember { ThemeProvider.random() }
     val palette = theme.palette
 
     val watchedApps = remember { WatchedApps(context) }
