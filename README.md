@@ -1,94 +1,36 @@
 # Beat
 
-*(working title)*
+**Beat gives you a beat before you open the apps you open on autopilot.**
 
-A screen-time app for Android that **doesn't block apps** — it inserts a short, boring, deliberately-designed pause before you open the apps you tend to open on autopilot, so your brain catches up with your thumb. The pause always lets you through; it just gives you a beat to change your mind. Built for personal use, sideloaded.
+It doesn't block anything. When you open a watched app, Beat slips a short, calm, deliberately boring pause in front of it — a line, a quietly-draining timer, and two choices: back out, or wait it out and go in anyway. The pause always lets you through. It just gives your brain a moment to catch up with your thumb.
 
-- **Pause, don't block.** Friction and a moment of reflection, never a wall.
-- **Opinionated, not configurable.** The only thing you set is *which apps to watch*.
-- **Boredom is the intervention.** A fixed, gently-draining wait with nothing to do.
-- **Track the wins.** The one number that matters: how often you backed out.
-
----
-
-## Tech stack
-
-- Kotlin + Jetpack Compose (Material 3), single `:app` module
-- minSdk 29, compile/target SDK 36 (Android 16)
-- AGP 8.9.2 · Gradle 8.11.1 · JDK 17+ (JDK 21 used in development)
-- Jetpack DataStore for on-device state (no backend, no accounts, no telemetry)
-
-## Project layout
-
-```
-app/src/main/java/com/nimitpasricha/pause/
-  service/   PauseAccessibilityService — detects the foreground app
-  ui/        PauseActivity, PauseScreen, MainActivity (setup + wins)
-  domain/    TimerPolicy, PauseLines (the copy pool)
-  data/      VisitTracker, WatchedApps, Stats (DataStore)
-  theme/     Theme, ThemeProvider, themes/ (Blossom, Sky)
-```
+- **Pause, don't block.** Friction and a moment to reflect — never a wall.
+- **Boredom is the point.** Nothing to tap, nothing to watch. Just a beat.
+- **It's on your side.** The jokes are aimed at the feed and the algorithm, never at you.
+- **It counts your wins.** The only number it keeps is how often you backed out.
 
 ---
 
-## Building locally (Arch Linux + Android Studio)
+## Install
 
-Android Studio bundles its own JDK and installs the Android SDK, so you don't need a separate Java install.
+Beat is sideloaded — it's not on the Play Store.
 
-1. Open the project in Android Studio; let it sync Gradle (it will offer to install any missing SDK bits).
-2. Or build from the terminal, pointing at Studio's JDK and SDK:
-   ```bash
-   export JAVA_HOME=/opt/android-studio/jbr
-   export ANDROID_HOME=$HOME/Android/Sdk
-   ./gradlew assembleDebug          # build the debug APK
-   ./gradlew testDebugUnitTest      # run unit tests
-   ```
-   `local.properties` (git-ignored) already points `sdk.dir` at the SDK.
+1. On your Android phone (Android 10 or newer), open the **[latest release](https://github.com/nimit-pasricha/app-pause/releases/latest)** and download the `beat-*.apk` file.
+2. Tap the downloaded file to install. If your phone warns about installing from unknown sources, allow it for your browser/files app, then tap install again.
+3. Open **Beat** and follow the two one-time prompts:
+   - **Turn Beat on** — enables the service that notices when you open a watched app (Settings › Accessibility › Beat).
+   - **Let Beat draw on top** — so the pause can appear over the app you're opening.
+4. Choose which apps you want Beat to watch. That's it.
 
-## Installing on your phone
+Updating later: download the newest APK from the releases page and install it over the top.
 
-1. On the phone: **Settings → About phone → tap Build number 7×** to unlock Developer options, then **Developer options → enable USB debugging**.
-2. Plug in over USB, accept the RSA prompt, then:
-   ```bash
-   ./gradlew installDebug
-   ```
-3. **Turn the service on (one time):** **Settings → Accessibility → Beat → enable.** Android requires this to be done manually; the app cannot enable it for you.
-4. Open Beat, pick which apps to watch, then open one of them — the pause appears.
-
-> The app can always be disabled from the same Accessibility settings — it's your phone. The goal is to break the *reflexive* open, not to be an uncircumventable wall.
+> It's your phone — you can turn Beat off anytime from Settings › Accessibility. The point is to break the *reflexive* open, not to lock you out.
 
 ---
 
-## Releases (CI/CD)
+## How it works
 
-- **Every push / PR** to `main` runs a CI build + unit tests + lint (see `.github/workflows/ci.yml`).
-- **Pushing a `v*` tag** builds a signed release APK and attaches it to a GitHub Release (`.github/workflows/release.yml`).
-
-### One-time release-signing setup
-
-Generate a keystore (keep it safe — it's how the app updates in place; losing it means uninstall/reinstall to update):
-
-```bash
-keytool -genkeypair -v -keystore beat-release.jks -keyalg RSA -keysize 2048 \
-  -validity 10000 -alias beat -dname "CN=Beat"
-# you'll be prompted for store/key passwords
-
-base64 -w0 beat-release.jks   # copy this single-line output
-```
-
-Add four repository secrets (Settings → Secrets and variables → Actions, or `gh secret set`):
-
-| Secret | Value |
-| --- | --- |
-| `SIGNING_KEY_BASE64` | the base64 output above |
-| `KEY_ALIAS` | `beat` |
-| `KEYSTORE_PASSWORD` | the store password you chose |
-| `KEY_PASSWORD` | the key password you chose |
-
-Then cut a release:
-
-```bash
-git tag v0.1.0 && git push origin v0.1.0
-```
-
-The keystore file itself is git-ignored and must never be committed.
+- The first time you open a watched app each day, the pause is **5 seconds**. The next time it's **15**, and after that **30** — and it resets every morning. Reopening only ever makes the next wait a little longer, so the fidgety reopen is the thing that gets gently discouraged.
+- **"Actually, never mind"** takes you straight home and counts as a win.
+- **"Open anyway"** unlocks once the timer runs out and lets you in, no guilt.
+- The look changes with the seasons. There are no settings to fiddle with — picking your apps is the only thing to do.
