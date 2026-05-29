@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Warm sticky-note tone for the launcher icon background. -->
+    <color name="ic_launcher_background">#F6D8C8</color>
+</resources>
