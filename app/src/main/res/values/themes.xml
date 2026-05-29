@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base platform theme. The real UI is drawn with Jetpack Compose; this
+         just needs to be a no-action-bar theme so Compose owns the whole window. -->
+    <style name="Theme.Beat" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>
